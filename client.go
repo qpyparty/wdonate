@@ -10,125 +10,208 @@ import (
 
 // Client represents a client for the Wdonate API.
 type Client struct {
-	Token string
-	BotID int
+	Token      string
+	BotID      int
+	BaseURL    string
+	HTTPClient *http.Client
 }
 
-// NewClient creates a new instance of the Wdonate API client.
-func NewClient(token string, botId int) *Client {
+// NewClient creates a new instance of Client.
+func NewClient(token string, botID int) *Client {
 	return &Client{
-		Token: token,
-		BotID: botId,
+		Token:      token,
+		BotID:      botID,
+		BaseURL:    BASE_API_URL,
+		HTTPClient: &http.Client{},
 	}
 }
 
-// doRequest performs a POST request to the Wdonate API with the given endpoint and request body.
-func (c *Client) doRequest(endpoint string, requestBody interface{}) ([]byte, error) {
-	url := fmt.Sprintf(BASE_API_URL, endpoint)
-	jsonBody, err := json.Marshal(requestBody)
+// doRequest performs a HTTP request and decodes the response.
+func (c *Client) doRequest(req *http.Request, v interface{}) error {
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
-	}
-
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request to %s failed with status code: %d", endpoint, resp.StatusCode)
+		return fmt.Errorf("API request error: %s", resp.Status)
 	}
 
-	return io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(body, v)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// GetLink sends a request to the getLink API method and returns the response.
-func (c *Client) GetLink(req GetLinkRequest) (*GetLinkResponse, error) {
-	req.Token = c.Token
-	req.BotID = c.BotID
+// GetLink sends a request to the getLink API method and decodes the response.
+func (c *Client) GetLink(request *GetLinkRequest) (*GetLinkResponse, error) {
+	if request == nil {
+		request = &GetLinkRequest{}
+	}
+	if request.Token == "" {
+		request.Token = c.Token
+	}
+	if request.BotID == 0 {
+		request.BotID = c.BotID
+	}
 
-	body, err := c.doRequest("getLink", req)
+	url := fmt.Sprintf(c.BaseURL, "getLink")
+	body, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
 
-	var resp GetLinkResponse
-	err = json.Unmarshal(body, &resp)
-	return &resp, err
-}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
-// GetPayments sends a request to the getPayments API method and returns the response.
-func (c *Client) GetPayments(req GetPaymentsRequest) (*GetPaymentsResponse, error) {
-	req.Token = c.Token
-	req.BotID = c.BotID
-
-	body, err := c.doRequest("getPayments", req)
+	var response GetLinkResponse
+	err = c.doRequest(req, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	var resp GetPaymentsResponse
-	err = json.Unmarshal(body, &resp)
-	return &resp, err
+	return &response, nil
 }
 
-// GetBalance sends a request to the getBalance API method and returns the response.
-func (c *Client) GetBalance(req GetBalanceRequest) (*GetBalanceResponse, error) {
-	req.Token = c.Token
-	req.BotID = c.BotID
+// GetPayments sends a request to the getPayments API method and decodes the response.
+func (c *Client) GetPayments(request *GetPaymentsRequest) (*GetPaymentsResponse, error) {
+	if request == nil {
+		request = &GetPaymentsRequest{}
+	}
+	if request.Token == "" {
+		request.Token = c.Token
+	}
+	if request.BotID == 0 {
+		request.BotID = c.BotID
+	}
 
-	body, err := c.doRequest("getBalance", req)
+	url := fmt.Sprintf(c.BaseURL, "getPayments")
+	body, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
 
-	var resp GetBalanceResponse
-	err = json.Unmarshal(body, &resp)
-	return &resp, err
-}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
-// GetCallback sends a request to the getCallback API method and returns the response.
-func (c *Client) GetCallback(req GetCallbackRequest) (*GetCallbackResponse, error) {
-	req.Token = c.Token
-	req.BotID = c.BotID
-
-	body, err := c.doRequest("getCallback", req)
+	var response GetPaymentsResponse
+	err = c.doRequest(req, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	var resp GetCallbackResponse
-	err = json.Unmarshal(body, &resp)
-	return &resp, err
+	return &response, nil
 }
 
-// SetCallback sends a request to the setCallback API method and returns the response.
-func (c *Client) SetCallback(req SetCallbackRequest) (*SetCallbackResponse, error) {
-	req.Token = c.Token
-	req.BotID = c.BotID
+// GetBalance sends a request to the getBalance API method and decodes the response.
+func (c *Client) GetBalance(request *GetBalanceRequest) (*GetBalanceResponse, error) {
+	if request == nil {
+		request = &GetBalanceRequest{}
+	}
+	if request.Token == "" {
+		request.Token = c.Token
+	}
+	if request.BotID == 0 {
+		request.BotID = c.BotID
+	}
 
-	body, err := c.doRequest("setCallback", req)
+	url := fmt.Sprintf(c.BaseURL, "getBalance")
+	body, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
 
-	var resp SetCallbackResponse
-	err = json.Unmarshal(body, &resp)
-	return &resp, err
-}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
-// DelCallback sends a request to the delCallback API method and returns the response.
-func (c *Client) DelCallback(req DelCallbackRequest) (*DelCallbackResponse, error) {
-	req.Token = c.Token
-	req.BotID = c.BotID
-
-	body, err := c.doRequest("delCallback", req)
+	var response GetBalanceResponse
+	err = c.doRequest(req, &response)
 	if err != nil {
 		return nil, err
 	}
 
-	var resp DelCallbackResponse
-	err = json.Unmarshal(body, &resp)
-	return &resp, err
+	return &response, nil
+}
+
+// GetCallback sends a request to the getCallback API method and decodes the response.
+func (c *Client) GetCallback(request *GetCallbackRequest) (*GetCallbackResponse, error) {
+	if request == nil {
+		request = &GetCallbackRequest{}
+	}
+	if request.Token == "" {
+		request.Token = c.Token
+	}
+	if request.BotID == 0 {
+		request.BotID = c.BotID
+	}
+
+	url := fmt.Sprintf(c.BaseURL, "getCallback")
+	body, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	var response GetCallbackResponse
+	err = c.doRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
+// SetCallback sends a request to the setCallback API method and decodes the response.
+func (c *Client) SetCallback(request *SetCallbackRequest) (*SetCallbackResponse, error) {
+	if request == nil {
+		request = &SetCallbackRequest{}
+	}
+	if request.Token == "" {
+		request.Token = c.Token
+	}
+	if request.BotID == 0 {
+		request.BotID = c.BotID
+	}
+
+	url := fmt.Sprintf(c.BaseURL, "setCallback")
+	body, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	var response SetCallbackResponse
+	err = c.doRequest(req, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }

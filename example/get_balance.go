@@ -15,10 +15,10 @@ func main() {
 	client := wdonate.NewClient(token, botId)
 
 	// Execute a request to get the balance
-	response, err := client.GetBalance(wdonate.GetBalanceRequest{})
+	response, err := client.GetBalance(nil)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(response.Balance)
+	fmt.Println(response.Response.Balance)
 }
